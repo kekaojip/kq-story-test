@@ -1,8 +1,9 @@
 # 深度拆解进度：诡舍2
 
 - 小说：诡舍2 | 当前文件总章数：66 | 输出目录：`拆文库/诡舍2/` | 开始：2026-09-09
-- 最终状态：paused_after_stage1
+- 最终状态：completed
 - schema_version: 2
+- 范围：当前66章连载截面，非完结本
 - 源文件：`诡舍2(夜来风雨声丶).txt`
 - 源 SHA-256：`da54519eca4023fac75e9aa3c40d15f9328ee008b36e0bb4e2f0d7a94be28eb7`
 
@@ -11,15 +12,15 @@
 | 阶段 | 状态 | 进度 | 备注 |
 |---|---|---|---|
 | 原文备份前置 | fallback | 指纹已锁定 | public 测试仓库不公开复制整本原文；私有会话上传文件为分析真源 |
-| Stage 0 章节边界 | completed | 66/66 | 边界表已建立 |
-| Stage 0 概要 | completed | 1/1 | thin first-pass |
-| Stage 1 黄金三章 | completed | 3/3 | 三章深度拆解完成 |
-| Stage 1 快速预览 | completed | 1/1 | `快速预览.md` |
-| Stage 2 逐章摘要 | pending | 0/66 | 用户确认后从这里续跑 |
-| Stage 3 聚合分析 | pending | 0 | 依赖 Stage 2 |
-| Stage 4 设定+关系 | pending | 0 | 后续阶段 |
-| Stage 5 汇总报告 | pending | 0 | 后续阶段 |
-| Stage 6 文风 | pending | 0 | 后续阶段 |
+| Stage 0 章节边界 | completed | 66/66 | schema v2 权威边界 |
+| Stage 0 概要 | completed | 1/1 | 后由 Stage 5 plot-aware 概要覆盖 |
+| Stage 1 黄金三章 | completed | 3/3 | 深度拆解完成 |
+| Stage 1 快速预览 | completed | 1/1 | `快速预览.md` 保留早期判断 |
+| Stage 2 逐章摘要 | completed | 66/66 | 每章独立摘要 + 写法公式 |
+| Stage 3 聚合分析 | completed | 1/1 | 剧情单元、故事线、节奏、情绪模块、散落伏笔 |
+| Stage 4 设定+关系 | completed | 1/1 | 角色、关系、世界观、力量、地理、烛山 |
+| Stage 5 汇总报告 | completed | 1/1 | `拆文报告.md` + plot-aware `概要.md` |
+| Stage 6 文风 | completed | 1/1 | `文风.md` |
 
 ## 章节边界（Stage 0 唯一权威）
 
@@ -97,32 +98,36 @@
 | 块 | 章节 | 状态 |
 |---|---|---|
 | golden-three | 1-3 | completed |
-| remaining | 4-66 | pending |
+| stage2-all | 1-66 | completed |
+| aggregate | Stage 3-6 | completed |
 
 ## 失败记录
 
-| 类型 | 章节/阶段 | 错误信息 | 重试状态 |
+| 类型 | 章节/阶段 | 错误信息 | 处理 |
 |---|---|---|---|
-| 原文公开备份受限 | 前置步骤 | 目标 GitHub 仓库为 public，不公开复制整本受版权保护原文 | 以当前私有上传文件 + SHA-256 作为源文件锁定 |
+| 原文公开备份受限 | 前置步骤 | 目标 GitHub 仓库为 public，不公开复制整本受版权保护原文 | 当前私有上传文件 + SHA-256 作为源锁定；拆解产物正常完成 |
 
 ## 质量检查
 
-| 检查项 | 阶段 | 结果 | 修正 |
-|---|---|---|---|
-| 章节识别 | Stage 0 | PASS：66章连续识别 | 无 |
-| schema_version | Stage 0 | PASS：2 | 无 |
-| 黄金三章文件数 | Stage 1 | PASS：3/3 | 无 |
-| 快速预览字段 | Stage 1 | PASS | 无 |
-| Source lock | 前置 | PASS：文件名 + 字符数 + SHA-256 | 无 |
+| 检查项 | 结果 |
+|---|---|
+| 章节识别 | PASS：66章连续 |
+| Stage 2 摘要计数 | PASS：66/66 |
+| Stage 3 权威文件 | PASS：`节奏.md`、`情绪模块.md`、`README.md` |
+| Stage 4 角色/设定 | PASS |
+| Stage 5 报告 | PASS |
+| Stage 6 文风 | PASS |
+| 未完结边界 | PASS：所有终态文件标注当前66章范围 |
 
 ## 角色合并
 
 | 合并前 | 合并后 | 依据 | 确认 |
 |---|---|---|---|
-| 暂无 | 暂无 | Stage 4 执行 | pending |
+| 白裙女人 / 妹妹 | 韩昭雪 | 第24章身份回收 | confirmed |
+| 年轻韩昭虹 | 韩昭虹 | 烛山资料同名女性筛选 | 当前为高概率目标，现实身份待见面最终确认 |
 
 ## 断点
 
-- 最后处理：第3章
-- 当前阶段：paused_after_stage1
-- 下一操作：用户确认后跳过 Stage 0/1，直接进入 Stage 2，对第1-66章产出逐章摘要；其中第1-3章仍需 Stage 2 摘要，但不重做深度拆解。
+- 最后处理：第66章
+- 当前阶段：completed
+- 下一操作：无。若用户提供后续新增章节，应从第67章起增量拆解，并重新聚合受影响的剧情/节奏/情绪与报告，不重跑已锁定的1-66章。
