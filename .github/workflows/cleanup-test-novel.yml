@@ -24,3 +24,5 @@ jobs:
           git add -A
           git commit -m "remove Rules Repairman test novel content" || exit 0
           git push
+
+# trigger-cleanup
