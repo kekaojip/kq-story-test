@@ -1,0 +1,45 @@
+name: Deploy oh-story generic test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-oh-story-generic.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch pinned oh-story source
+        run: |
+          git clone https://github.com/zenstory-ai/oh-story-claudecode.git /tmp/oh-story
+          git -C /tmp/oh-story checkout fde17546758c58ad4d3306ef93d0db8ad28f9f3c
+
+      - name: Deploy generic project files
+        run: |
+          rm -rf skills
+          cp -a /tmp/oh-story/skills ./skills
+          sed 's/{项目名}/kq-story-test/g' /tmp/oh-story/skills/story-setup/references/generic/AGENTS.md.tmpl > AGENTS.md
+          cat > .story-deployed <<EOF
+          deployed_at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          agents_version: 30
+          setup_skill_version: 1.2.10
+          target_cli: generic
+          resolver_strategy: project-local-skill-reference
+          references_dir: skills/story-setup/references/agent-references
+          EOF
+
+      - name: Commit deployment
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add skills AGENTS.md .story-deployed
+          git commit -m 'test: deploy oh-story generic workflow'
+          git push origin main
