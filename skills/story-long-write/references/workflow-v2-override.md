@@ -242,6 +242,8 @@ output/current/report_v3.json
 
 最终收编必须显式记录采用哪个版本。
 
+Revision 时 Main 必须在 `HANDOFF_STATE.revision_base` 中显式指定返修基线；普通第一次返修通常为 `output/current/draft.md`，历史章回炉为 `input/current/ORIGINAL_DRAFT.md`。Writer 不得只凭聊天上下文重构上一稿。
+
 ---
 
 ## 6. 文风 / 作者偏好跨仓传递
@@ -273,18 +275,19 @@ Main 每次发布 Workspace 时生成：
 
 每次发布新任务前，Main 必须把 Writer `input/current/` 当成**热工作区**处理，而不是增量堆文件。
 
-### 发布前必须删除上一任务遗留
+### 发布前必须清理上一任务遗留
 
-除固定说明文件外，清理：
+归档上一任务后，清理：
 
 - `00_TASK.md` ～ `06_AUTHOR_PREFERENCES.md`
 - `ORIGINAL_DRAFT.md`
 - `NEXT_CONTEXT.md`
 - `REVISION.md`
-- `HANDOFF_STATE.json`
 - `characters/*`
 - `rules/*`
 - `benchmark/*`
+
+上一任务的 `HANDOFF_STATE.json` 在归档完成后保留为 `status: archived`；发布下一任务时用新任务状态**原子替换**，不先删除。
 
 然后只写当前任务需要的文件。
 
