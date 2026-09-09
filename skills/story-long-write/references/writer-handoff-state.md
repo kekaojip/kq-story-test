@@ -114,6 +114,26 @@ Examples：
 
 ---
 
+## Archived 状态保留规则
+
+归档完成后，`HANDOFF_STATE.json` **必须保留**，并写成 `status: archived`，用于跨聊天恢复最后一次已完成交接。
+
+因此，任何通用“清理 input/current 热区”的规则都不得在归档收尾时删除这个文件。
+
+正确顺序：
+
+1. 最终 PASS；
+2. Tracking 同步；
+3. 生成 Archive Manifest；
+4. 清理 00-06、REVISION、ORIGINAL_DRAFT、NEXT_CONTEXT、characters/rules/benchmark 与 output 热文件；
+5. 保留并更新 `HANDOFF_STATE.json` 为 `archived`。
+
+发布下一任务时，再以新任务内容**原子替换**旧 `HANDOFF_STATE.json`，不得先删除后留下无状态窗口。
+
+本节对任何泛化的“清理 HANDOFF_STATE”描述具有优先权。
+
+---
+
 ## 不变量
 
 - 状态文件不是小说真相源。
