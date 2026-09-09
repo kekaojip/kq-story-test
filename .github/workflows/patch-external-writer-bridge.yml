@@ -1,0 +1,69 @@
+name: Patch External Writer Bridge
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-external-writer-bridge.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch story-long-write routing
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def insert_after(path, anchor, block, marker):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if marker in text:
+                  return
+              if anchor not in text:
+                  raise SystemExit(f'anchor missing: {path}: {anchor}')
+              text = text.replace(anchor, anchor + '\n\n' + block, 1)
+              p.write_text(text, encoding='utf-8')
+
+          skill_block = '''## 外部正文 Writer 覆盖协议（KQ V1，强制）\n\n当任务进入任何**正文创建/改写/续写**阶段时，必须先完整读取 `references/external-writer-bridge.md`。该文件对正文执行层具有覆盖权：\n\n- 主工作流继续负责规划、召回、Constraint Lock、审稿、Tracking 与最终入库；\n- 默认**不再直接调用 narrative-writer 生成最终正文**；\n- 正文必须发布到 `kekaojip/kq-story-writer` 的受控工作区，由外部 Writer 生成；\n- 主侧审稿不得直接重写 Writer 正文，需修改时写 `REVISION.md` 让 Writer 自己返修；\n- Writer 最终版本只有在主侧 PASS 且 Tracking 同步后才成为正式正文。\n\n若本 SKILL 其他段落仍描述旧 `narrative-writer` 直写流程，以 `external-writer-bridge.md` 为正文执行层最终裁决。'''
+          insert_after(
+              'skills/story-long-write/SKILL.md',
+              '# story-long-write：长篇网文写作',
+              skill_block,
+              '## 外部正文 Writer 覆盖协议（KQ V1，强制）'
+          )
+
+          chapter_block = '''## External Writer Bridge Override（正文执行层权威覆盖）\n\n本文件步骤 1–5 以及正文前的细纲、卷纲、Tracking、对标、文风、Constraint Lock 准备继续有效。\n\n**从准备完成并即将生成正文开始，旧的 narrative-writer / 主会话直写步骤不再作为默认路径。** 必须切换到 [external-writer-bridge.md](external-writer-bridge.md)：\n\n1. 编译并发布 `kq-story-writer/input/current/`；\n2. 状态置为 `awaiting_external_writer` 并停止；\n3. Writer 返回 `draft.md + report.json` 后由主侧审稿；\n4. 需修改时只写 `REVISION.md`，状态置为 `awaiting_writer_revision`；\n5. 最终 PASS 后才回写主仓库正文并更新 Tracking。\n\n本文件后文如仍出现“直接 spawn narrative-writer”“主会话直接写最终正文”等旧表述，在 KQ V1 环境下均由该桥接协议覆盖。'''
+          insert_after(
+              'skills/story-long-write/references/workflow-chapter.md',
+              '# workflow-chapter.md：单章正文工作流（Phase 4-5）',
+              chapter_block,
+              '## External Writer Bridge Override（正文执行层权威覆盖）'
+          )
+
+          daily_block = '''## External Writer Bridge Override（日更串行规则）\n\n日更/续写时，每一章仍先完成本文件的状态加载和规划准备，但**正文执行必须逐章走** [external-writer-bridge.md](external-writer-bridge.md)。\n\n因此 KQ V1 下“日更 2–3 章”不再意味着主会话一次性直写 2–3 章，而是串行：\n\n`发布第N章 → 等 Writer → 审稿/返修 → PASS/Tracking → 再发布第N+1章`。\n\n任何一章处于 `awaiting_external_writer` 或 `awaiting_writer_revision` 时，后续章节不得抢跑。'''
+          insert_after(
+              'skills/story-long-write/references/workflow-daily.md',
+              '# workflow-daily.md：日更续写工作流',
+              daily_block,
+              '## External Writer Bridge Override（日更串行规则）'
+          )
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add skills/story-long-write/SKILL.md skills/story-long-write/references/workflow-chapter.md skills/story-long-write/references/workflow-daily.md
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "route story-long-write prose through external writer bridge"
+          git push
+
+# trigger-v1
