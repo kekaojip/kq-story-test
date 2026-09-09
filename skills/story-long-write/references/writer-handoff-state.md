@@ -22,10 +22,13 @@ Writer 不修改 input；状态切换由 Main 负责写入。
   "run_type": "create|revision",
   "status": "awaiting_external_writer",
   "writer_attempt": 1,
+  "delivery_mode": "CHECKPOINTED|ONE_SHOT",
+  "delivery_phase": "FRONT|COMPLETE|null",
   "published_at": "ISO-8601",
   "main_source_revision": "optional",
   "writer_repo_base_commit": "optional",
   "revision_base": null,
+  "checkpoint": null,
   "expected_output": {
     "draft": "output/current/draft.md",
     "report": "output/current/report.json"
@@ -33,6 +36,28 @@ Writer 不修改 input；状态切换由 Main 负责写入。
   "note": "optional"
 }
 ```
+
+### delivery 字段
+
+- `delivery_mode=CHECKPOINTED`：默认长篇第一稿，两段交付。
+- `delivery_mode=ONE_SHOT`：用户明确要求一次成文时使用。
+- `delivery_phase=FRONT`：只等待 `output/current/segment.md`，它不是正式候选稿。
+- `delivery_phase=COMPLETE`：Main 已完成 midpoint checkpoint，Writer 基于已写 segment 继续完成整章。
+- revision 不使用 FRONT；`delivery_phase` 可为 `null` 或 `COMPLETE`。
+
+`checkpoint` 仅在 CHECKPOINTED 的 COMPLETE 阶段由 Main 写入，可包含：
+
+```json
+{
+  "actual": 1500,
+  "metric": "visible_chars_v1",
+  "remaining_user_range": "1100-1900",
+  "front_completed_scope": ["已完成批准情节点简写"],
+  "remaining_scope": ["尚待完成批准情节点简写"]
+}
+```
+
+Writer 不修改这些字段。
 
 `revision_base`：
 
@@ -48,8 +73,8 @@ Writer 返修前必须先读取该基线，不得仅凭聊天上下文或 REVISI
 ## 合法状态
 
 - `published`：Workspace 已写完但尚未正式交给 Writer。
-- `awaiting_external_writer`：等待第一稿。
-- `reviewing`：Main 已收到候选，正在 Review / 裁决。
+- `awaiting_external_writer`：等待第一稿；CHECKPOINTED 的 FRONT 与 COMPLETE 都使用这一状态，由 `delivery_phase` 区分。
+- `reviewing`：Main 已收到完整候选，正在 Review / 裁决。
 - `awaiting_writer_revision`：REVISION.md 已发布，等待 Writer 返修。
 - `accepted`：最终正文已 PASS，但归档 / Tracking 可能尚未完成。
 - `archived`：正文、Tracking、Manifest 与热区清理全部完成。
@@ -61,9 +86,25 @@ Writer 返修前必须先读取该基线，不得仅凭聊天上下文或 REVISI
 
 ## 状态转换
 
+ONE_SHOT：
+
 ```text
 published
 → awaiting_external_writer
+→ reviewing
+→ accepted
+→ archived
+```
+
+CHECKPOINTED：
+
+```text
+published
+→ awaiting_external_writer + FRONT
+→ segment.md 返回
+→ Main checkpoint
+→ awaiting_external_writer + COMPLETE
+→ draft.md + report.json 返回
 → reviewing
 → accepted
 → archived
@@ -85,15 +126,54 @@ reviewing
 
 ## Expected Output
 
-### 第一稿
+### ONE_SHOT 第一稿
 
 ```json
+"delivery_mode": "ONE_SHOT",
+"delivery_phase": "COMPLETE",
 "revision_base": null,
 "expected_output": {
   "draft": "output/current/draft.md",
   "report": "output/current/report.json"
 }
 ```
+
+### CHECKPOINTED 第一稿前段
+
+```json
+"delivery_mode": "CHECKPOINTED",
+"delivery_phase": "FRONT",
+"revision_base": null,
+"expected_output": {
+  "draft": "output/current/segment.md",
+  "report": null
+}
+```
+
+`segment.md` 只是 midpoint checkpoint 材料，不得进入 Review、Tracking 或正式收编。
+
+### CHECKPOINTED 第一稿完整阶段
+
+Main 测完 segment 后原子更新状态：
+
+```json
+"delivery_mode": "CHECKPOINTED",
+"delivery_phase": "COMPLETE",
+"revision_base": null,
+"checkpoint": {
+  "actual": 1500,
+  "metric": "visible_chars_v1",
+  "remaining_user_range": "1100-1900",
+  "front_completed_scope": [],
+  "remaining_scope": []
+},
+"expected_output": {
+  "draft": "output/current/draft.md",
+  "report": "output/current/report.json"
+}
+```
+
+Writer 必须读取现有 `output/current/segment.md`，保持其正文前缀不变，只续写剩余批准内容；最终 `draft.md` = 原 segment 原文 + 后续正文。
 
 ### 第一次返修
 
@@ -115,13 +195,17 @@ Main 新会话或 compact 后：
 
 1. 先读主项目 Tracking / `追踪/上下文.md`；
 2. 再读 Writer `HANDOFF_STATE.json`；
-3. 按 `expected_output` 检查对应文件是否存在；
-4. 若是 revision，额外确认 `revision_base` 存在且与本轮被审稿版本一致；
-5. 若状态和文件不一致，标记 `blocked` 并先对账，不自动覆盖任何版本。
+3. 按 `delivery_mode / delivery_phase / expected_output` 检查对应文件是否存在；
+4. CHECKPOINTED + FRONT 且 `segment.md` 已存在 → 不进入 reviewing；先测 checkpoint，再切 COMPLETE；
+5. CHECKPOINTED + COMPLETE 且仅有 `segment.md` → 继续等待完整 `draft.md`，不得把 segment 当候选稿；
+6. 若是 revision，额外确认 `revision_base` 存在且与本轮被审稿版本一致；
+7. 若状态和文件不一致，标记 `blocked` 并先对账，不自动覆盖任何版本。
 
 Examples：
 
-- 状态 `awaiting_external_writer` 但 draft 已存在 → 进入 `reviewing` 前先确认 draft 对应当前 chapter。
+- ONE_SHOT 状态 `awaiting_external_writer` 但 draft 已存在 → 进入 `reviewing` 前先确认 draft 对应当前 chapter。
+- CHECKPOINTED FRONT 已有 segment → Main 做 checkpoint，不 review segment。
+- CHECKPOINTED COMPLETE 只有 segment → 继续等待，不误判完成。
 - 状态 `awaiting_writer_revision` 但 `revision_base` 缺失 → blocked，不让 Writer 猜原文。
 - 状态 `awaiting_writer_revision` 但只存在旧 `draft.md` 且 expected output 是 v2 → 继续等待，不把旧稿误当返修稿。
 - 状态 `accepted` 但 Tracking 未同步 → 不允许发布下一章。
@@ -152,6 +236,7 @@ Examples：
 
 - 状态文件不是小说真相源。
 - 状态文件不存完整正文或完整 Tracking。
+- `segment.md` 不是正式候选正文。
 - `accepted` 不等于 `archived`。
 - 只有 `archived` 的当前章才允许正常发布下一章。
 - Revision 必须有可读取的 `revision_base`。
