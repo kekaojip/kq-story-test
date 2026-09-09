@@ -377,3 +377,228 @@ Writer 的 `measure_draft.py` 必须优先识别当前任务显式 target / rang
 5. Tracking 只接收最终 PASS 正文。
 6. 新章、日更、历史回炉全部走同一双仓闭环。
 7. 旧 workflow 中任何与本文件冲突的“主仓直写 / 先 Tracking / 批末自动改文”条款均视为 legacy，不执行。
+
+---
+
+## 12. Final Parity：第一稿默认 CHECKPOINTED
+
+为恢复原版 `story-long-write` 的“前组 → midpoint 字数反馈 → 后组”能力，长篇 FIRST_DRAFT 增加两种交付模式：
+
+- `CHECKPOINTED`：默认。
+- `ONE_SHOT`：仅当用户明确要求“一次成文 / 一次性写完整章”或 Main 有明确任务级理由时使用。
+
+Main 在 `00_TASK.md` 与 `HANDOFF_STATE.json` 中显式写：
+
+```text
+delivery_mode: CHECKPOINTED | ONE_SHOT
+delivery_phase: FRONT | COMPLETE
+heading_literal: <完整标题首行，或 NONE>
+```
+
+### 12.1 CHECKPOINTED / FRONT
+
+Main 仍发布**整章** 00-06、Outline、Boundaries 与 EXECUTION_CARD，让 Writer 能统筹全章；但 `expected_output` 只等待：
+
+`output/current/segment.md`
+
+Writer 在批准情节点之间选择自然的场景 / 因果停顿处结束前段，不得截断一句对白、一个动作或一个必须连写的微场景，也不得为了“正好一半”机械切段。
+
+`segment.md`：
+
+- 不是正式候选稿；
+- 不进入 story-review；
+- 不进入 Tracking；
+- Main 不在 checkpoint 阶段改写它。
+
+### 12.2 Main midpoint checkpoint
+
+收到 `segment.md` 后，Main 使用现有原版字数能力按 `visible_chars_v1` 测量，优先沿用：
+
+`storyctl.py wordcount checkpoint`
+
+Main 计算并写回：
+
+```text
+checkpoint_actual
+remaining_user_range
+front_completed_scope
+remaining_scope
+```
+
+同时把：
+
+`delivery_phase: COMPLETE`
+
+并把 HANDOFF `expected_output` 改为：
+
+```text
+output/current/draft.md
+output/current/report.json
+```
+
+Main 不以 checkpoint 为由新增、删除或重排批准剧情。
+
+如果前段已经使剩余用户范围很紧或已经超预算，仍不得要求 Writer 把未完成批准内容硬塞成提纲；Writer先自然完成全部批准内容，完整稿若最终 `over`，再按本文件 `COMPRESS_ONCE` 处理。
+
+### 12.3 CHECKPOINTED / COMPLETE
+
+Writer 必须把既有 `segment.md` 当成**冻结正文前缀**：
+
+- 原文保持不变；
+- 不为了追字数回改前段；
+- 只继续 `remaining_scope` 中尚未完成的批准内容；
+- 最终 `draft.md = segment.md 原文 + 后续正文`。
+
+checkpoint 只是字数反馈，不是审稿，不改变 Human Writing L2、Truth Guard 或章节蓝图。
+
+### 12.4 ONE_SHOT
+
+ONE_SHOT 直接等待：
+
+`draft.md + report.json`
+
+不生成 `segment.md`，后续 Review / Revision / Tracking 与普通 V2 相同。
+
+---
+
+## 13. Final Parity：Writer 交付附件映射到 report.json
+
+完整候选稿的 `report*.json` 除原字段外，必须提供三组可审计信息。
+
+### 13.1 `outline_coverage`
+
+用于恢复原版“时空表 / 情节点覆盖证明”的功能，但不要求复制旧大表格。
+
+最小结构：
+
+```json
+"outline_coverage": [
+  {
+    "beat": "批准情节点的语义简写",
+    "status": "landed|partial|unwritten",
+    "location": "正文段落或场景位置"
+  }
+]
+```
+
+Main 必须拿**实际正文 + 01_OUTLINE**复核，不能因为 Writer 自报 `landed` 就自动 PASS。
+
+任何必须情节点为 `partial / unwritten` 时，不得静默进入 Tracking。
+
+### 13.2 `unwritten`
+
+恢复原版“本章没写成的”供给反馈：
+
+```json
+"unwritten": [
+  {
+    "beat": "未成功落地内容",
+    "reason": "input_insufficient|boundary_blocked|conflict_or_ambiguity|space_or_pacing|other",
+    "note": "最短必要说明"
+  }
+]
+```
+
+Main 收到后先分类，不一律把问题甩回 Writer：
+
+- Writer 执行问题 → `REVISION.md`。
+- `input_insufficient` → 回 Main 补细纲 / Execution Card / 必要材料后重新发布，不让 Writer猜。
+- `conflict_or_ambiguity` → 查 Tracking / 设定 / Truth 后再决定。
+- `boundary_blocked` → 若确属禁止新增，则接受“不写”；若边界本身配置错误，Main 修输入后再发。
+- `space_or_pacing` → 先判断是不是细纲供给过密；不得单纯要求 Writer 压成摘要。
+
+### 13.3 `references_read`
+
+Writer 报告实际读取的 Skill / reference 路径，例如：
+
+```json
+"references_read": [
+  "skills/human-writing-l2/SKILL.md",
+  "references/execution/combat-execution.md"
+]
+```
+
+它只用于可观测性，不作为“读得越多越好”的评分项，也不因为列表短就自动返修。
+
+### 13.4 `proposed_additions` 对象化
+
+V2 Writer 新报告优先写：
+
+```json
+"proposed_additions": [
+  {
+    "item": "新增物",
+    "type": "character|fact|relation|setting|resource|other",
+    "why_needed": "为什么当前场景需要",
+    "future_obligation": "none|possible"
+  }
+]
+```
+
+这只提高申报分辨率，**不扩大 Writer 权限**。旧报告若仍是字符串数组，Main 继续兼容读取。
+
+新主线事件、新反转、新金手指规则、提前后续剧情、改变既定结果仍是禁止项，不能借 `proposed_additions` 合法化。
+
+---
+
+## 14. Final Parity：标题行形态继承
+
+Main 在编译 `00_TASK.md` 时增加：
+
+`heading_literal`
+
+它必须是**Writer 应原样写入正文第一行的完整标题字面量**，例如：
+
+`# 第13章 山门之前`
+
+Main 生成方式：
+
+1. 优先读取上一已接受章节的标题行形态；
+2. 保留其 Markdown / 空格 / “第N章”格式；
+3. 替换为当前批准章节号与章名；
+4. 第1章或没有历史正文时，使用本项目当前平台约定；
+5. 若项目正文明确不含标题，写 `heading_literal: NONE`。
+
+Writer 有 `heading_literal` 时不得自行改成另一种标题格式。Revision 除非任务明确改标题，否则保持原 literal。
+
+---
+
+## 15. Final Parity：`OVER → COMPRESS_ONCE`
+
+如果完整候选通过剧情覆盖 / 真值 / 边界检查，但 `visible_chars_v1` 明确为 `over`，Main 可以发一次专项 Revision：
+
+```text
+revision_type: COMPRESS_ONCE
+target_range: <用户范围或当前权威范围>
+MUST_PRESERVE:
+- 全部批准且已落地情节点
+- 事件结果
+- 人物知识边界
+- 伏笔与信息释放
+- heading_literal
+- 章尾停笔点
+SCOPE:
+- 全章仅做净删 / 压缩，不新增语义
+```
+
+Writer 只允许：
+
+- 删除重复解释；
+- 删除重复反应；
+- 合并同义表达；
+- 压缩无新信息的过渡；
+- 在不损失场景因果的前提下做局部净删。
+
+禁止：
+
+- 新增剧情或事实；
+- 改变事件顺序 / 结果；
+- 删除必须情节点；
+- 把场景压成提纲摘要；
+- 为了过字数检测进行全章同义词洗稿。
+
+`COMPRESS_ONCE` 最多执行一次。完成后重新测字数并重新进入 Review。
+
+若仍 `over`，不自动第二次压缩，由 Main / 用户选择：接受当前长度、修改目标/细纲，或另行明确授权其他处理。
+
+`under` 仍不得靠新增剧情补字数。
