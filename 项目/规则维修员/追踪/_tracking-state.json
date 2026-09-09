@@ -1,7 +1,9 @@
 {
-  "schema_version": 1,
+  "schema_version": 4,
   "book_title": "规则维修员",
-  "last_chapter": 0,
+  "last_committed_chapter": 0,
+  "imported_through_chapter": 0,
+  "state_revision": 0,
   "context": {
     "position": {
       "volume": "第一卷·六楼不存在",
@@ -24,7 +26,8 @@
       "第一章结尾出现六楼存在/不存在的硬冲突"
     ]
   },
-  "character_snapshots": {},
-  "foreshadow": [],
-  "timeline_events": []
+  "characters": {},
+  "foreshadow": {},
+  "timeline": {},
+  "wordcount_records": {}
 }
