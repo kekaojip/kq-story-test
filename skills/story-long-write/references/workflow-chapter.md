@@ -1,5 +1,19 @@
 # workflow-chapter.md：单章正文工作流（Phase 4-5）
 
+## External Writer Bridge Override（正文执行层权威覆盖）
+
+本文件步骤 1–5 以及正文前的细纲、卷纲、Tracking、对标、文风、Constraint Lock 准备继续有效。
+
+**从准备完成并即将生成正文开始，旧的 narrative-writer / 主会话直写步骤不再作为默认路径。** 必须切换到 [external-writer-bridge.md](external-writer-bridge.md)：
+
+1. 编译并发布 `kq-story-writer/input/current/`；
+2. 状态置为 `awaiting_external_writer` 并停止；
+3. Writer 返回 `draft.md + report.json` 后由主侧审稿；
+4. 需修改时只写 `REVISION.md`，状态置为 `awaiting_writer_revision`；
+5. 最终 PASS 后才回写主仓库正文并更新 Tracking。
+
+本文件后文如仍出现“直接 spawn narrative-writer”“主会话直接写最终正文”等旧表述，在 KQ V1 环境下均由该桥接协议覆盖。
+
 本文件是「写一章正文」的完整流程。SKILL.md 路由到 Phase 4 后按本文件执行；日更批量由 `workflow-daily.md` 控制批次与追踪事务，每章正文仍走本文件。
 
 项目文件结构、产物映射、缺失处理和对标权威顺序见 [project-files.md](project-files.md)；首次定位、初始化或缺失时先读取并执行。

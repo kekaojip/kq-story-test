@@ -1,5 +1,15 @@
 # workflow-daily.md：日更续写工作流
 
+## External Writer Bridge Override（日更串行规则）
+
+日更/续写时，每一章仍先完成本文件的状态加载和规划准备，但**正文执行必须逐章走** [external-writer-bridge.md](external-writer-bridge.md)。
+
+因此 KQ V1 下“日更 2–3 章”不再意味着主会话一次性直写 2–3 章，而是串行：
+
+`发布第N章 → 等 Writer → 审稿/返修 → PASS/Tracking → 再发布第N+1章`。
+
+任何一章处于 `awaiting_external_writer` 或 `awaiting_writer_revision` 时，后续章节不得抢跑。
+
 本文件为"日更续写"场景的完整指引。SKILL.md 路由到本文件后，按以下流程执行。
 
 > **日更准备步骤**：每章写作前 4 步——状态筛选 + 题材正文提示卡召回 + 文风召回 + 意图确认，嵌入 Step 2 逐章循环。
