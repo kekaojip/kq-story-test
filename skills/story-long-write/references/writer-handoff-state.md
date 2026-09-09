@@ -25,6 +25,7 @@ Writer 不修改 input；状态切换由 Main 负责写入。
   "published_at": "ISO-8601",
   "main_source_revision": "optional",
   "writer_repo_base_commit": "optional",
+  "revision_base": null,
   "expected_output": {
     "draft": "output/current/draft.md",
     "report": "output/current/report.json"
@@ -32,6 +33,15 @@ Writer 不修改 input；状态切换由 Main 负责写入。
   "note": "optional"
 }
 ```
+
+`revision_base`：
+
+- FIRST_DRAFT：`null`
+- 普通第一次返修：`output/current/draft.md`
+- 普通第二次返修：Main 明确指定上一版，例如 `output/current/draft_v2.md`
+- 历史章节回炉：`input/current/ORIGINAL_DRAFT.md`
+
+Writer 返修前必须先读取该基线，不得仅凭聊天上下文或 REVISION 摘要重构原稿。
 
 ---
 
@@ -78,6 +88,7 @@ reviewing
 ### 第一稿
 
 ```json
+"revision_base": null,
 "expected_output": {
   "draft": "output/current/draft.md",
   "report": "output/current/report.json"
@@ -87,13 +98,14 @@ reviewing
 ### 第一次返修
 
 ```json
+"revision_base": "output/current/draft.md",
 "expected_output": {
   "draft": "output/current/draft_v2.md",
   "report": "output/current/report_v2.json"
 }
 ```
 
-只有 Main 明确授权第二次返修时才使用 `draft_v3.md / report_v3.json`。
+只有 Main 明确授权第二次返修时才使用 `draft_v3.md / report_v3.json`，并显式写出对应 `revision_base`。
 
 ---
 
@@ -104,12 +116,14 @@ Main 新会话或 compact 后：
 1. 先读主项目 Tracking / `追踪/上下文.md`；
 2. 再读 Writer `HANDOFF_STATE.json`；
 3. 按 `expected_output` 检查对应文件是否存在；
-4. 若状态和文件不一致，标记 `blocked` 并先对账，不自动覆盖任何版本。
+4. 若是 revision，额外确认 `revision_base` 存在且与本轮被审稿版本一致；
+5. 若状态和文件不一致，标记 `blocked` 并先对账，不自动覆盖任何版本。
 
 Examples：
 
 - 状态 `awaiting_external_writer` 但 draft 已存在 → 进入 `reviewing` 前先确认 draft 对应当前 chapter。
-- 状态 `awaiting_writer_revision` 但只存在旧 `draft.md` → 继续等待，不把旧稿误当返修稿。
+- 状态 `awaiting_writer_revision` 但 `revision_base` 缺失 → blocked，不让 Writer 猜原文。
+- 状态 `awaiting_writer_revision` 但只存在旧 `draft.md` 且 expected output 是 v2 → 继续等待，不把旧稿误当返修稿。
 - 状态 `accepted` 但 Tracking 未同步 → 不允许发布下一章。
 
 ---
@@ -140,4 +154,5 @@ Examples：
 - 状态文件不存完整正文或完整 Tracking。
 - `accepted` 不等于 `archived`。
 - 只有 `archived` 的当前章才允许正常发布下一章。
+- Revision 必须有可读取的 `revision_base`。
 - Writer 不修改 HANDOFF_STATE；Writer 只按当前输入生成 expected output。
