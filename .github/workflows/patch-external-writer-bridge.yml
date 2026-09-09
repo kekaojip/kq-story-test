@@ -66,4 +66,4 @@ jobs:
           git commit -m "route story-long-write prose through external writer bridge"
           git push
 
-# trigger-v1
+# trigger-v2
