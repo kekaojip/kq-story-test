@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "book_title": "规则维修员",
+  "last_chapter": 0,
+  "context": {
+    "position": {
+      "volume": "第一卷·六楼不存在",
+      "volume_start_chapter": 1,
+      "story_time": "第一章深夜电梯故障工单开始前",
+      "scene": "城北旧居民楼"
+    },
+    "long_term_constraints": [
+      "规则不是谜题清单，而是可验证的现实模型；故事来自模型冲突与损坏",
+      "林砚不能跳过验证自由改写规则；补丁只能处理已确认冲突",
+      "主角必须保留核心判断、关键选择与收益结算权",
+      "前期不得确认林晚生死、根规则来源或现实协议终极真相"
+    ],
+    "active_character_names": [],
+    "continuity_risks": [],
+    "recent_chapters": [],
+    "next_chapter_commitments": [
+      "从正在发生的深夜电梯困人故障切入",
+      "第一章明确主角是维修员并建立夜间电梯安全经验",
+      "第一章结尾出现六楼存在/不存在的硬冲突"
+    ]
+  },
+  "character_snapshots": {},
+  "foreshadow": [],
+  "timeline_events": []
+}
