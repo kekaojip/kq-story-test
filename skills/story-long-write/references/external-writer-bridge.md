@@ -1,10 +1,12 @@
-# external-writer-bridge.md：外部正文 Writer 双仓库桥接协议（V1）
+# external-writer-bridge.md：外部正文 Writer 双仓库桥接协议（V2）
 
 > 本协议是 `story-long-write` 的正文执行层权威覆盖协议。
-> 
+>
 > **上游主工作流继续负责：** 选题、拆文、设定、人物、全书/卷/章规划、对标召回、状态筛选、边界裁决、审稿、Tracking、最终入库。
-> 
+>
 > **外部 Writer 只负责：** 把已经确定的章节语义写成正文，并按要求返修。
+>
+> **V2 新增：** `EXECUTION_CARD`、Writer execution slices、`story-review` 正式审稿节点、`story-deslop DETECT_ONLY` 专项诊断、确定性只读预检。
 
 ---
 
@@ -15,6 +17,8 @@
 - Writer Skill：`skills/story-writer-runtime/`
 - Writer 当前输入：`input/current/`
 - Writer 当前输出：`output/current/`
+- 主侧审稿 Skill：`skills/story-review/`
+- 主侧去 AI 专项诊断：`skills/story-deslop/`，只用 `DETECT_ONLY`
 
 正文不得再由主工作流中的 `narrative-writer` 作为默认执行者生成。除非用户明确要求 fallback / 本地直写，否则进入正文阶段时必须走本协议。
 
@@ -30,6 +34,7 @@
 - 哪些信息允许释放、哪些禁止提前释放
 - 章尾停笔点
 - 人物与规则真相
+- 悬念 / 战斗 / 钩子 / 反转 / 情绪的设计结果
 - 对标技法选择
 - 是否 PASS / REVISE
 - 最终正文是否进入主仓库
@@ -43,8 +48,15 @@
 - 段落与叙述节奏
 - 局部生活化细节
 - 在不改变剧情契约前提下的自然场景化
+- 把 `EXECUTION_CARD` 中已经批准的专项执行意图写到位
 
 Writer **不得**直接修改主仓库大纲、人物设定、世界规则、Tracking、未来剧情或真相文件。
+
+### Reviewer / Deslop 只拥有诊断权
+
+- `story-review`：找问题、分级、给修复方向；不直接改 Writer 正文。
+- `story-deslop DETECT_ONLY`：只在需要时定位具体 AI/表面病灶；不直接改正文、不写回文件。
+- 最终是否需要返修、返修哪些问题，由 Main 裁决。
 
 ---
 
@@ -58,6 +70,7 @@ Writer **不得**直接修改主仓库大纲、人物设定、世界规则、Tra
 4. 相关人物、规则、势力读取
 5. 对标召回与文风裁决
 6. Constraint Lock
+7. 按 `writer-execution-card.md` 把已批准的正文执行决定编译成 `EXECUTION_CARD`
 
 当这些内容都已确定后，**不要直接生成正文**，而是编译为 Writer Workspace。
 
@@ -76,6 +89,7 @@ Writer **不得**直接修改主仓库大纲、人物设定、世界规则、Tra
 characters/
 rules/
 benchmark/
+  EXECUTION_CARD.md   # V2，可选但推荐；至少有 PROSE CORE 时生成
 ```
 
 ### `00_TASK.md`
@@ -116,6 +130,21 @@ benchmark/
 ### `benchmark/`
 只放主工作流已经选中的本章技法，不允许 Writer 自己扫描全部拆文库寻找“更好的写法”。
 
+### `benchmark/EXECUTION_CARD.md`
+按 `references/writer-execution-card.md` 编译。
+
+它只传递主模型已经做完的当前章执行决定，例如：
+
+- `PROSE CORE`
+- `SUSPENSE`
+- `COMBAT`
+- `HOOK`
+- `REVERSAL`
+- `EMOTION`
+- `DIALOGUE`
+
+不存在的模块不生成。不得把完整设计方法论原样复制给 Writer。
+
 ---
 
 ## 4. 发布卫生规则
@@ -124,9 +153,10 @@ benchmark/
 
 1. 更新 `input/current/00–04`
 2. 更新相关 `characters/`、`rules/`、`benchmark/`
-3. 删除上一章遗留的 `input/current/REVISION.md`
-4. 清空上一章 `output/current/` 的正文与报告，只保留 `OUTPUT_CONTRACT.md`
-5. 确认 Writer 当前任务章节号与主仓库目标章节一致
+3. 重新生成当前章 `EXECUTION_CARD`；禁止沿用上一章卡片
+4. 删除上一章遗留的 `input/current/REVISION.md`
+5. 清空上一章 `output/current/` 的正文与报告，只保留 `OUTPUT_CONTRACT.md`
+6. 确认 Writer 当前任务章节号与主仓库目标章节一致
 
 Writer 默认禁止读取 `archive/`。只有主工作流在当前任务中明确授权某个历史材料时才可读取。
 
@@ -140,6 +170,13 @@ Writer 从根目录 `START_HERE.md` 进入，读取当前任务，输出：
 output/current/draft.md
 output/current/report.json
 ```
+
+Writer Runtime V2 默认：
+
+- `Human Writing L2 / FIRST_DRAFT` 控制自然成文与完成度波动；
+- 根据 `EXECUTION_CARD` 模块按需加载 execution slices；
+- 写完后运行 `check-outline-copy`、`check-degeneration`、`visible_chars_v1` 字数测量；
+- 这些预检只提供 evidence，不自动触发全章去 AI 清洗。
 
 `report.json` 至少包含：
 
@@ -155,10 +192,13 @@ output/current/report.json
 }
 ```
 
+可附 `preflight`。
+
 其中：
 - `deviations` 不得静默省略偏纲
 - 临时功能人物/场景名应进入 `proposed_additions`
 - Writer 不得把自己的新增内容直接提升成长期真相
+- `preflight` finding 只是诊断证据，不等于自动改文命令
 
 发布后，主工作流进入：
 
@@ -168,7 +208,7 @@ output/current/report.json
 
 ---
 
-## 6. 主侧审稿规则
+## 6. V2 主侧审稿闭环
 
 外部 Writer 返回后，主工作流读取：
 
@@ -176,16 +216,74 @@ output/current/report.json
 - `output/current/report.json`
 - 当前章 `01_OUTLINE.md`
 - `04_BOUNDARIES.md`
+- `EXECUTION_CARD.md`（若存在）
 - 当前主仓库 Tracking / 章节承诺
+
+### 6.1 先运行 `story-review`
+
+`story-review` 是正式 Reviewer，不是改稿器。
+
+默认目标：对当前 Writer 候选进行章节级审查；运行时支持 lean 时优先 lean，不支持子代理或复杂模式时 fallback 到 solo/direct，但**无论模式都只输出 findings，不修改正文**。
 
 审稿优先级：
 
 1. 剧情契约 / 章尾 / 禁止提前释放
 2. 人物知识边界与连续性
 3. 主角代理权
-4. 对标功能是否兑现
-5. 节奏与信息密度
-6. 语言自然度与 AI 痕迹
+4. `EXECUTION_CARD` 的批准功能是否兑现
+5. 对标功能是否兑现
+6. 节奏与信息密度
+7. 对话、人物行为、正文自然度
+8. AI 痕迹 / 模型退化 / 格式
+
+Reviewer findings 使用 `story-review` 自身统一 schema：
+
+```yaml
+- severity: S1 | S2 | S3 | S4
+  category: structure | character | prose | consistency | platform | factual | format | causal | rule_boundary
+  location: 文件路径:行号 或 章节/段落描述
+  evidence: "证据"
+  issue: "问题"
+  fix: "修复方向"
+```
+
+### 6.2 仅在需要时运行 `story-deslop DETECT_ONLY`
+
+触发条件：
+
+- `story-review` 出现明确 `prose` / AI-naturalness / 过度工整 / 解释腔 / 模型句式类 finding；
+- Writer `preflight` 或作者明确指出 AI 表面病灶；
+- Main 需要把模糊的“太 AI”定位成具体局部问题。
+
+调用必须明确：
+
+> **仅标注 / 只检测 / 不要改。**
+
+只执行 `story-deslop` 的扫描与诊断阶段：
+
+- 不进入逐项清除；
+- 不自动写回正文；
+- 不运行“全文三遍清洗”作为生产默认；
+- 输出位置、Gate / 类型、证据、建议局部动作。
+
+若没有具体自然度问题，不调用 Deslop。
+
+### 6.3 Main 合并 findings 并裁决
+
+Main 合并：
+
+```text
+Writer report / preflight
++ story-review findings
++ 必要时 story-deslop DETECT_ONLY findings
++ Main 的 Truth / Boundary 裁决
+```
+
+然后只允许：
+
+- `PASS`
+- `PASS WITH MINOR`
+- `REVISE`
 
 主模型**不得因为“想改得更好”直接重写正文**。
 
@@ -200,7 +298,29 @@ output/current/report.json
 
 `input/current/REVISION.md`
 
-只写语义级修订目标，不提供大段替换句，不替 Writer 代写。
+每条修订目标建议使用：
+
+```text
+LOCATION:
+DEFECT:
+MUST_PRESERVE:
+TARGET:
+SCOPE:
+```
+
+要求：
+
+- 只写具体 defect 与语义级修订目标；
+- 不提供大段成品替换句；
+- `MUST_PRESERVE` 明确不能被返修破坏的剧情/语气/事实；
+- `SCOPE` 限制在命中段落及必要邻接；
+- 多个 finding 先由 Main 去重、合并、排序，不把 Reviewer 原报告整包倒给 Writer。
+
+Writer 修订时：
+
+- 自然度 / 过度完成 / 对白说满 / 局部模型腔 → `Human Writing L2 LOCAL_REVISION`
+- 真值 / 边界 / 连续性 / 格式 → 最小修复
+- 涉及悬念、战斗、钩子、反转执行 → 继续服从原 `EXECUTION_CARD`，不得重设计
 
 Writer 修订后输出：
 
@@ -212,6 +332,8 @@ output/current/report_v2.json
 此时状态为：
 
 `awaiting_writer_revision`
+
+V2 默认最多一次 Writer 修订；只有 S1/S2 仍未解决时才考虑第二次，不为纯文风偏好无限循环。
 
 ---
 
@@ -243,6 +365,7 @@ output/current/report_v2.json
 - 读取主仓库最新 Tracking
 - 读取下一章细纲
 - 重新执行主侧 Context Compiler
+- 重新编译该章 `EXECUTION_CARD`
 - 用上一章**最终 PASS 正文**生成 `03_PREVIOUS_PROSE.md`
 - 发布下一章 Workspace
 - 再次进入 `awaiting_external_writer`
@@ -256,18 +379,32 @@ output/current/report_v2.json
 1. **主仓库是唯一真相源。**
 2. **Writer 仓库是受控工作台，不是真相源。**
 3. Writer 不能直接改主仓库。
-4. 主模型不直接代写 Writer 正文。
+4. Main / Reviewer / Deslop 不直接代写 Writer 正文。
 5. 外部 Writer 不知道未来真相，只知道当前章必要边界。
-6. 任何正文版本只有在主侧 PASS + Tracking 同步后才正式生效。
-7. 换 Writer 模型、换聊天、上下文清空，都不影响小说，因为状态在仓库中。
+6. `EXECUTION_CARD` 只传已批准执行决定，不新增真相。
+7. `story-review` 只诊断；`story-deslop` 在生产闭环中默认只 DETECT_ONLY。
+8. Human Writing L2 负责第一稿自然成文；Deslop 不得反向恢复全章自动 AI wash。
+9. 任何正文版本只有在主侧 PASS + Tracking 同步后才正式生效。
+10. 换 Writer 模型、换聊天、上下文清空，都不影响小说，因为状态在仓库中。
 
 ---
 
-## 10. V1 验证结论
+## 10. 回滚与基线
 
-本协议已通过《规则维修员》第1章、第2章连续测试：
+V2 改造前主仓基线分支：
 
-- 第1章完成：主侧规划 → Writer v1 → 主侧语义审稿 → Writer v2 → PASS → 主仓库收编 → Tracking 同步
-- 第2章完成：主侧发布第二章工作区 → 外部 Writer 可读取上一章最终版本并独立生成正文
+`backup/pre-writer-v2-20260910`
 
-因此从 V1 起，`story-long-write` 的正文执行默认采用本桥接协议。
+Writer 仓同名基线分支：
+
+`backup/pre-writer-v2-20260910`
+
+若 V2 A/B 表现不如旧 Runtime，可以整体回滚；不得删除旧 `story-review`、`story-deslop` 或 Human Writing L2 历史版本来“简化”架构。
+
+---
+
+## 11. V1 验证历史
+
+V1 曾通过《规则维修员》第1章、第2章连续测试，证明双仓 Writer 架构可工作。
+
+V2 在 V1 基础上补回：正文执行知识、Review / Deslop 诊断闭环与 Main → Writer 执行意图编译层。V2 是否升级为最终生产基线，以真实章节 A/B 结果为准。
