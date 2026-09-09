@@ -1,5 +1,7 @@
 # kq-story-test — 网文写作工具集（通用 Agent / Web AI）
 
+> **FRAMEWORK LOCK：执行任何工作前先读取仓库根目录 `FRAMEWORK_LOCK.md`。除非 KQ 明确批准，禁止修改、删除、改名、移动、重构或实质替换受保护框架；允许在不改变现有行为的前提下做增量扩展。**
+
 本项目按通用文件方式接入 oh-story skills。若当前平台没有 Claude Code / OpenCode / Codex / Antigravity / ZCode / OpenClaw 的 hooks 或 custom agents，仍可直接让 Agent 读取 `skills/*/SKILL.md` 和 `skills/*/references/` 执行；只是运行时硬拦截和多 agent 自动协作不会自动生效。
 
 ## Skill 路由表
