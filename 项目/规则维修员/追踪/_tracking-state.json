@@ -1,15 +1,15 @@
 {
   "schema_version": 4,
   "book_title": "规则维修员",
-  "last_committed_chapter": 0,
+  "last_committed_chapter": 1,
   "imported_through_chapter": 0,
-  "state_revision": 0,
+  "state_revision": 1,
   "context": {
     "position": {
       "volume": "第一卷·六楼不存在",
       "volume_start_chapter": 1,
-      "story_time": "第一章深夜电梯故障工单开始前",
-      "scene": "城北旧居民楼"
+      "story_time": "凌晨一点后，六楼异常第一次被林砚现场确认",
+      "scene": "城北旧居民楼故障电梯"
     },
     "long_term_constraints": [
       "规则不是谜题清单，而是可验证的现实模型；故事来自模型冲突与损坏",
@@ -17,17 +17,57 @@
       "主角必须保留核心判断、关键选择与收益结算权",
       "前期不得确认林晚生死、根规则来源或现实协议终极真相"
     ],
-    "active_character_names": [],
+    "active_character_names": ["林砚"],
     "continuity_risks": [],
-    "recent_chapters": [],
+    "recent_chapters": [
+      {
+        "chapter": 1,
+        "summary": "林砚处理深夜电梯困人故障，发现住户口述、监控和机械位移互相冲突，并第一次看见六楼存在与本次运行跳过六楼的互斥状态；章末电梯播报六楼到了，门开始打开。"
+      }
+    ],
     "next_chapter_commitments": [
-      "从正在发生的深夜电梯困人故障切入",
-      "第一章明确主角是维修员并建立夜间电梯安全经验",
-      "第一章结尾出现六楼存在/不存在的硬冲突"
+      "异常平台只看一眼，不探索，先保证被困住户安全",
+      "林砚做空载重复实验，同时记录机械行程、门磁、监控和播报",
+      "确认异常视觉会随验证增加而变清晰，但仍不能判断哪条规则正确",
+      "章尾出现可申请临时修补与错误修补将产生回滚债"
     ]
   },
-  "characters": {},
+  "characters": {
+    "林砚": {
+      "identity": "24岁，城市物业外包维修员",
+      "location": "城北旧居民楼故障电梯内",
+      "goal": "先把被困住户安全带出，再验证六楼异常到底发生在哪一层规则",
+      "state": "冷静，已确认普通故障解释不足；主动承担继续留在电梯内验证的风险",
+      "abilities_resources": [
+        "维修钥匙与基础电梯检修能力",
+        "第一次看见信息互相冲突时出现的红色互斥标记，目前只能观察不能修补"
+      ],
+      "relationships": [],
+      "knowledge": [
+        "住户长期遵循凌晨后下行必须在六楼停一次的经验",
+        "监控显示六楼开门，但被困者坚持未停，机械位移只记录一层",
+        "控制板同时出现6F有效层站与本次运行跳过6F"
+      ],
+      "open_threads": [
+        "门后六楼异常空间是什么",
+        "哪一层记录更接近现实",
+        "红色互斥标记为何只有自己能看见"
+      ]
+    }
+  },
   "foreshadow": {},
-  "timeline": {},
+  "timeline": {
+    "E001": {
+      "id": "E001",
+      "story_time": "凌晨一点后",
+      "objective_fact": "同一次电梯运行里，住户口述、监控记录和机械位移出现互不兼容的六楼状态，林砚看见控制板上的互斥标记。",
+      "reader_knowledge": "读者已知六楼存在与本次运行不经过六楼同时成立，且电梯最终播报六楼到了并开始开门。",
+      "reveal_status": "已揭示",
+      "reveal_chapter": 1,
+      "characters": ["林砚"],
+      "first_recorded_chapter": 1,
+      "updated_chapter": 1
+    }
+  },
   "wordcount_records": {}
 }
