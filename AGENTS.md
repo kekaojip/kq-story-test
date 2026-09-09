@@ -16,7 +16,7 @@
 | 短篇拆文 | story-short-analyze | 短篇小说拆文分析 |
 | 长篇扫榜 | story-long-scan | 长篇小说榜单与市场趋势 |
 | 短篇扫榜 | story-short-scan | 短篇小说榜单与情绪风口 |
-| 去 AI 味 | story-deslop | 去除 AI 写作痕迹 |
+| 去 AI 味 | story-deslop | 去除 AI 写作痕迹；双仓生产闭环默认只作按需 DETECT_ONLY 诊断 |
 | 封面 | story-cover | 生成封面图 |
 | 审查 | story-review | 多视角审查；无 custom agents 时降级为单线程审查 |
 | 导入 | story-import | 逆向导入已有小说到项目结构 |
@@ -40,7 +40,8 @@
 - 写正文前先有大纲：长篇需要 `大纲/细纲_第N章*.md`，短篇需要 `小节大纲.md`。
 - 无 hooks 的平台不会自动拦截越权写正文，Agent 必须在执行写作 skill 时自行检查大纲、上下文和追踪文件。
 - 无 custom agents 的平台按 solo/direct 执行；遇到 skill 要求调用 story-architect、narrative-writer 等 agent 时，改由当前 Agent 直接完成，并在结果里说明降级。
-- **去AI味自锁**（无 hook 平台此条是唯一防线）：每章正文落盘后，同一轮内立即按写作 skill 的「最毒句式速查 + 禁用词扫描」自检并清零（能运行 node 时跑 `check-ai-patterns.js --check --fail-on=blocking`）；写下一章前先复查上一章无欠账。唯一豁免＝用户显式说"本章不去味"，豁免章在标题行下加 `<!-- 去味:跳过 -->`。
+- **长篇双仓 V2 正文审查自锁**：外部 Writer 返回候选后，先按 `story-long-write/references/external-writer-bridge.md` 运行 `story-review` 只读审稿；只有命中具体 AI / 过度工整 / 解释腔等 prose 病灶时，才调用 `story-deslop` 的“仅标注 / 只检测 / 不要改”模式辅助定位。Main 合并 findings 后只做 `PASS / PASS WITH MINOR / REVISE` 裁决；需要文风/自然度修复时写 `REVISION.md` 交同一 Writer 局部返修。**禁止把旧“每章自动全文去 AI 清零”当作双仓生产默认。** `check-ai-patterns.js` 等仍可作为证据，但 finding 不等于必须修改。
+- **短篇与显式独立去 AI 请求**仍按各自 Skill 的原协议执行；本条只覆盖 `story-long-write` 的 External Writer V2 正文闭环。
 - Compact / 新会话后优先读取 `{书名}/追踪/上下文.md` 恢复当前写作状态。
 
 ## Compact 后恢复上下文
