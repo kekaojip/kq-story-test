@@ -43,6 +43,33 @@ AI-A / Main
 
 如果任何旧文档、fallback、solo/direct 说明允许当前 Agent 代替 `narrative-writer`，在 `story-long-write` External Writer 生产链中一律由本文件覆盖。
 
+### 1.1 Main 对 Writer 仓的访问面只允许当“投递箱 / 收件箱”
+
+Main 可以访问 `kq-story-writer`，但只能为交接做文件操作：
+
+允许：
+
+- 写入 / 更新 `input/current/**`；
+- 写入 `HANDOFF_STATE.json`；
+- 为发布卫生清理当前任务运行数据；
+- Writer 完成后读取 `output/current/**`；
+- 最终 PASS 后执行 archive / manifest 所需文件操作。
+
+Main 在正常生产阶段**禁止读取或执行**：
+
+- `kq-story-writer/START_HERE.md`
+- `kq-story-writer/skills/**`
+- `kq-story-writer/skills/human-writing-l2/**`
+- Writer Runtime 的正文生成说明
+
+Main 不需要知道 Writer “怎么写”，只需要按主仓 Bridge 契约“投递什么”和“收回什么”。
+
+如果 Main 为了继续当前章节而开始读取 Writer Skill / Human Writing L2，并准备自己生成正文，视为：
+
+`TWO_AI_ISOLATION_VIOLATION`
+
+必须停止。
+
 ### 唯一例外
 
 只有 KQ 在**当前任务中明确说**“这次允许主 AI 直接写正文 / 不走外部 Writer / fallback 直写”，才可绕过本门禁。
@@ -61,7 +88,7 @@ Main 完成以下动作后必须停止：
 4. 状态进入 `awaiting_external_writer` 或 `awaiting_writer_revision`；
 5. 确认 Writer 需要的输入已经存在。
 
-此后 Main **不得读取 Writer Skill 来替它继续生成正文**。
+此后 Main 不得进入任何 Writer 执行阶段。
 
 Main 的当前回复必须以“外部 Writer 提示词”结束，然后停止。
 
@@ -86,12 +113,13 @@ kekaojip/kq-story-test
 
 先读取：
 1. FRAMEWORK_LOCK.md
-2. START_HERE.md
-3. skills/story-writer-runtime/SKILL.md
-4. skills/story-writer-runtime/V2_RUNTIME_PATCH.md
-5. output/current/OUTPUT_CONTRACT.md
-6. input/current/HANDOFF_STATE.json
-7. 再按 START_HERE / Runtime 读取 input/current 当前任务。
+2. EXTERNAL_WRITER_SESSION_LOCK.md
+3. START_HERE.md
+4. skills/story-writer-runtime/SKILL.md
+5. skills/story-writer-runtime/V2_RUNTIME_PATCH.md
+6. output/current/OUTPUT_CONTRACT.md
+7. input/current/HANDOFF_STATE.json
+8. 再按 START_HERE / Runtime 读取 input/current 当前任务。
 
 严格按照 HANDOFF_STATE 的 delivery_mode / delivery_phase / expected_output 执行。
 只负责正文生成，不规划下一章，不修改 input，不读取主工作流仓库。
@@ -154,6 +182,7 @@ Main 跑到 Workspace 发布
 - 当前 Agent solo/direct 代替 narrative-writer；
 - 无 custom agents 时的单会话降级；
 - 为测试方便同会话生成 Writer 输出；
-- Workspace 发布后 Main 继续写正文。
+- Workspace 发布后 Main 继续写正文；
+- Main 读取 Writer Runtime 后自行执行 Writer。
 
 本门禁不改变 Main / Writer 原有职责，只把已经定义的双仓职责进一步升级为**双会话硬隔离**。
