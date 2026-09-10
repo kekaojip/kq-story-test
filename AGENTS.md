@@ -39,7 +39,8 @@
 
 - 写正文前先有大纲：长篇需要 `大纲/细纲_第N章*.md`，短篇需要 `小节大纲.md`。
 - 无 hooks 的平台不会自动拦截越权写正文，Agent 必须在执行写作 skill 时自行检查大纲、上下文和追踪文件。
-- 无 custom agents 的平台按 solo/direct 执行；遇到 skill 要求调用 story-architect、narrative-writer 等 agent 时，改由当前 Agent 直接完成，并在结果里说明降级。
+- 无 custom agents 的平台通常按 solo/direct 执行；**唯一硬例外是 `story-long-write` 的 External Writer 双仓正文链**：当前 Main Agent 绝不允许因为缺 custom agents / subagents / hooks 而代替 Writer 生成正文。该链必须执行 `skills/story-long-write/references/two-ai-hard-gate.md` 的双 AI 物理会话隔离，由 Main 发布 Workspace 后停止，再由 KQ 把提示词交给另一个独立 AI 会话执行 Writer。
+- **长篇双 AI 物理隔离硬门禁**：任何 `story-long-write` 正文创建、续写、日更、回炉、重写或测试，只要进入 External Writer 阶段，都必须完整读取 `skills/story-long-write/references/two-ai-hard-gate.md`。Main 只负责规划、编译并推送 `kq-story-writer/input/current/`；推送成功后必须立即停止并给 KQ 一段可复制给另一个 AI 的 Writer 提示词。**同一 AI 会话不得继续生成 `segment.md / draft*.md`，不得“模拟 Writer”，不得为了测试一窗口跑完整双仓。** 除非 KQ 在当前任务明确授权“本次主 AI 直接写正文 / fallback 直写”。
 - **长篇双仓 V2 强制覆盖层**：任何 `story-long-write` 的正文创建、续写、日更、回炉、重写、审稿、去 AI、最终收编或 Tracking 提交，除 `external-writer-bridge.md` 外还必须完整读取 `skills/story-long-write/references/workflow-v2-override.md`。该文件对旧 `workflow-chapter.md / workflow-daily.md / workflow-revision.md` 中冲突的单仓直写、先 Tracking、批末自动改文条款具有覆盖权；对 `external-writer-bridge.md` 第一轮 V2 中与其冲突的 Workspace 字段、revision 输出、Style Package、handoff 与热区卫生条款，同样以 `workflow-v2-override.md` 的第二轮协议为准。文风/作者偏好按 `writer-style-package.md` 编译，跨聊天交接状态按 `writer-handoff-state.md` 持久化。
 - **长篇双仓 V2 正文审查自锁**：外部 Writer 返回候选后，先按 `story-long-write/references/external-writer-bridge.md` 运行 `story-review` 只读审稿；只有命中具体 AI / 过度工整 / 解释腔等 prose 病灶时，才调用 `story-deslop` 的“仅标注 / 只检测 / 不要改”模式辅助定位。Main 合并 findings 后只做 `PASS / PASS WITH MINOR / REVISE` 裁决；需要文风/自然度修复时写 `REVISION.md` 交同一 Writer 局部返修。**禁止把旧“每章自动全文去 AI 清零”当作双仓生产默认。** `check-ai-patterns.js` 等仍可作为证据，但 finding 不等于必须修改。
 - **短篇与显式独立去 AI 请求**仍按各自 Skill 的原协议执行；本条只覆盖 `story-long-write` 的 External Writer V2 正文闭环。
